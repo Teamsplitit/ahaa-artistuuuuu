@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ahaa artistuuu</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section id="homeView" class="card">
+        <h1>ahaa artistuuu</h1>
+        <p class="sub">Multiplayer guessing game · 2 to 15 players</p>
+
+        <label>Name</label>
+        <input id="nameInput" maxlength="24" placeholder="Enter your name" />
+
+        <label class="mt">Invite code (optional for host)</label>
+        <input id="codeInput" maxlength="8" placeholder="e.g. ABC123" />
+
+        <div class="row mt">
+          <button id="createBtn">Create Room</button>
+          <button id="joinBtn" class="secondary">Join Room</button>
+        </div>
+
+        <p id="homeError" class="error"></p>
+      </section>
+
+      <section id="gameView" class="hidden">
+        <div class="header">
+          <div>
+            <h2 id="roomTitle">Room</h2>
+            <p id="phaseText" class="sub"></p>
+            <p id="myNameTop" class="sub"></p>
+          </div>
+          <button id="leaveBtn" class="secondary">Leave</button>
+        </div>
+
+        <div class="card" id="inviteCard">
+          <p><strong>Invite code:</strong> <span id="inviteCode"></span></p>
+          <p><strong>Share link:</strong> <span id="inviteLink"></span></p>
+          <button id="copyInviteBtn" class="secondary">Copy Invite Link</button>
+        </div>
+
+        <div class="card hidden" id="hostTransferCard">
+          <h3>Host Transfer</h3>
+          <label>Transfer host to</label>
+          <select id="hostTransferSelect"></select>
+          <div class="row mt">
+            <button id="transferHostBtn" class="secondary">Transfer Host</button>
+            <button id="transferLeaveBtn">Transfer & Leave</button>
+          </div>
+        </div>
+
+        <div class="card" id="lobbySettingsCard">
+          <h3>Game Setup</h3>
+          <label>Rounds</label>
+          <input id="roundsInput" type="number" min="1" max="30" />
+          <label class="mt">Time limit per round (seconds)</label>
+          <input id="timeInput" type="number" min="15" max="180" />
+          <label class="mt">Hint reveal letters (0-3)</label>
+          <input id="hintRevealInput" type="number" min="0" max="3" />
+          <div class="row mt">
+            <button id="saveSettingsBtn" class="secondary">Save Settings</button>
+            <button id="startBtn">Start Game</button>
+          </div>
+          <p class="sub">Turn moves in a circle. Only clue giver sees movie name.</p>
+        </div>
+
+        <div class="card" id="playCard">
+          <p><strong>Round:</strong> <span id="roundText">-</span></p>
+          <p><strong>Current clue giver:</strong> <span id="clueGiverText">-</span></p>
+          <p><strong>Timer:</strong> <span id="timerText">-</span></p>
+          <p id="roleText"></p>
+          <p id="movieText" class="movie"></p>
+
+          <div class="play-grid">
+            <div class="board-panel">
+              <div class="card board-wrap">
+                <canvas id="boardCanvas" width="700" height="360"></canvas>
+              </div>
+
+              <div id="drawControls" class="hidden">
+                <label>Drawing color</label>
+                <input id="colorInput" type="color" value="#111111" />
+                <label class="mt">Brush size</label>
+                <input id="sizeInput" type="range" min="1" max="24" value="4" />
+                <div class="row mt">
+                  <button id="clearBoardBtn" class="secondary">Clear Board</button>
+                </div>
+              </div>
+            </div>
+
+            <aside class="chat-panel">
+              <h3>Guess Chat</h3>
+              <div id="guessesList" class="list chat-messages"></div>
+              <div id="guessBox" class="hidden chat-input">
+                <label>Guess the Telugu movie</label>
+                <div class="row chat-input-row">
+                  <input id="guessInput" maxlength="60" placeholder="Type your guess" />
+                  <button id="sendGuessBtn">Guess</button>
+                </div>
+                <p id="guessHelp" class="sub">Unlimited guesses allowed until you are correct.</p>
+                <p id="guessFeedback" class="sub"></p>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div class="card" id="scoreboardCard">
+          <h3>Scoreboard</h3>
+          <div id="playersList" class="list"></div>
+        </div>
+
+        <div class="card" id="historyCard">
+          <h3>Round History</h3>
+          <div id="historyList" class="list"></div>
+        </div>
+
+        <div class="card hidden" id="winnerCard">
+          <h3>Winner</h3>
+          <p id="winnerText"></p>
+          <p id="closeCountdownText" class="sub"></p>
+        </div>
+
+        <div class="card hidden" id="rankingCard">
+          <h3>Final Rankings</h3>
+          <p id="rankingNote" class="sub"></p>
+          <div id="rankingList" class="list"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/script.js"></script>
+  </body>
+</html>
