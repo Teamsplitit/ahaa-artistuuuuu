@@ -22,9 +22,14 @@ body {
 }
 
 .app {
-  max-width: 760px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 16px;
+}
+
+#homeView {
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .card {
@@ -138,11 +143,15 @@ button:disabled {
   background: #fff;
 }
 
-.play-grid {
+.game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 12px;
   align-items: start;
+}
+
+.main-column {
+  min-width: 0;
 }
 
 .board-panel {
@@ -150,14 +159,12 @@ button:disabled {
 }
 
 .chat-panel {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #fff;
-  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 420px;
+  min-height: 520px;
+  position: sticky;
+  top: 12px;
 }
 
 .chat-messages {
@@ -212,12 +219,13 @@ button:disabled {
 }
 
 @media (max-width: 680px) {
-  .play-grid {
+  .game-layout {
     grid-template-columns: 1fr;
   }
 
   .chat-panel {
     min-height: 0;
+    position: static;
   }
 
   .chat-messages {

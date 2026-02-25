@@ -62,6 +62,7 @@ const guessInput = qs('guessInput');
 const sendGuessBtn = qs('sendGuessBtn');
 const guessHelp = qs('guessHelp');
 const guessFeedback = qs('guessFeedback');
+const guessChatCard = qs('guessChatCard');
 
 const guessesList = qs('guessesList');
 const scoreboardCard = qs('scoreboardCard');
@@ -228,6 +229,7 @@ function renderRoom(room) {
   playCard.classList.toggle('hidden', leaderboardOnly || room.phase === 'lobby');
   scoreboardCard.classList.toggle('hidden', leaderboardOnly);
   historyCard.classList.toggle('hidden', leaderboardOnly);
+  guessChatCard.classList.toggle('hidden', leaderboardOnly || room.phase === 'lobby');
 
   roomTitle.textContent = `Room ${room.code}`;
   phaseText.textContent = room.phase === 'lobby'
