@@ -34,24 +34,21 @@
                 <h2 id="roomTitle">Room</h2>
                 <p id="phaseText" class="sub"></p>
                 <p id="myNameTop" class="sub"></p>
+                <p id="headerMovieText" class="sub"></p>
               </div>
-              <button id="leaveBtn" class="secondary">Leave</button>
+              <div class="header-actions">
+                <div id="hostTransferCard" class="hidden host-transfer-header">
+                  <select id="hostTransferSelect"></select>
+                  <button id="transferHostBtn" class="secondary">Transfer Host</button>
+                </div>
+                <button id="leaveBtn" class="secondary">Leave</button>
+              </div>
             </div>
 
             <div class="card" id="inviteCard">
               <p><strong>Invite code:</strong> <span id="inviteCode"></span></p>
               <p><strong>Share link:</strong> <span id="inviteLink"></span></p>
               <button id="copyInviteBtn" class="secondary">Copy Invite Link</button>
-            </div>
-
-            <div class="card hidden" id="hostTransferCard">
-              <h3>Host Transfer</h3>
-              <label>Transfer host to</label>
-              <select id="hostTransferSelect"></select>
-              <div class="row mt">
-                <button id="transferHostBtn" class="secondary">Transfer Host</button>
-                <button id="transferLeaveBtn">Transfer & Leave</button>
-              </div>
             </div>
 
             <div class="card" id="lobbySettingsCard">
@@ -70,37 +67,52 @@
             </div>
 
             <div class="card" id="playCard">
-              <p><strong>Round:</strong> <span id="roundText">-</span></p>
-              <p><strong>Current clue giver:</strong> <span id="clueGiverText">-</span></p>
-              <p><strong>Timer:</strong> <span id="timerText">-</span></p>
-              <p id="roleText"></p>
-              <p id="movieText" class="movie"></p>
-
-              <div class="board-panel">
-                <div class="card board-wrap">
-                  <canvas id="boardCanvas" width="700" height="360"></canvas>
-                </div>
-
-                <div id="drawControls" class="hidden">
-                  <label>Drawing color</label>
-                  <input id="colorInput" type="color" value="#111111" />
-                  <label class="mt">Brush size</label>
-                  <input id="sizeInput" type="range" min="1" max="24" value="4" />
-                  <div class="row mt">
-                    <button id="clearBoardBtn" class="secondary">Clear Board</button>
-                  </div>
-                </div>
+              <div class="play-meta-row">
+                <div class="meta-chip"><span>Round</span><strong id="roundText">-</strong></div>
+                <div class="meta-chip"><span>Clue Giver</span><strong id="clueGiverText">-</strong></div>
+                <div class="meta-chip meta-movie"><span>Movie / Hint</span><strong id="movieText">-</strong></div>
+                <div class="meta-chip"><span>Timer</span><strong id="timerText">-</strong></div>
               </div>
-            </div>
+              <p id="roleText" class="sub"></p>
 
-            <div class="card" id="scoreboardCard">
-              <h3>Scoreboard</h3>
-              <div id="playersList" class="list"></div>
-            </div>
+              <div class="play-main-grid">
+                <aside class="left-rail">
+                  <div id="drawControls" class="hidden draw-tools">
+                    <h4>Draw Tools</h4>
+                    <label for="colorInput">Color</label>
+                    <input id="colorInput" type="color" value="#111111" />
+                    <label class="mt" for="sizeInput">Brush Size <span id="sizeValue">4px</span></label>
+                    <input id="sizeInput" type="range" min="1" max="24" value="4" />
+                    <div class="row mt">
+                      <button id="clearBoardBtn" class="secondary">Clear Board</button>
+                    </div>
+                  </div>
 
-            <div class="card" id="historyCard">
-              <h3>Round History</h3>
-              <div id="historyList" class="list"></div>
+                  <div class="leaderboard-panel" id="scoreboardCard">
+                    <h3>Leaderboard</h3>
+                    <div id="playersList" class="list"></div>
+                  </div>
+                </aside>
+
+                <section class="board-panel board-focus">
+                  <div class="board-wrap">
+                    <canvas id="boardCanvas" width="700" height="360"></canvas>
+                  </div>
+                </section>
+
+                <aside id="guessChatCard" class="play-side chat-panel">
+                  <h3>Guess Chat</h3>
+                  <div id="guessesList" class="list chat-messages"></div>
+                  <div id="guessBox" class="hidden chat-input">
+                    <label>Guess the Telugu movie</label>
+                    <div class="row chat-input-row">
+                      <input id="guessInput" maxlength="60" placeholder="Type your guess" />
+                      <button id="sendGuessBtn">Guess</button>
+                    </div>
+                    <p id="guessFeedback" class="sub"></p>
+                  </div>
+                </aside>
+              </div>
             </div>
 
             <div class="card hidden" id="winnerCard">
@@ -115,20 +127,6 @@
               <div id="rankingList" class="list"></div>
             </div>
           </div>
-
-          <aside id="guessChatCard" class="card chat-panel hidden">
-            <h3>Guess Chat</h3>
-            <div id="guessesList" class="list chat-messages"></div>
-            <div id="guessBox" class="hidden chat-input">
-              <label>Guess the Telugu movie</label>
-              <div class="row chat-input-row">
-                <input id="guessInput" maxlength="60" placeholder="Type your guess" />
-                <button id="sendGuessBtn">Guess</button>
-              </div>
-              <p id="guessHelp" class="sub">Unlimited guesses allowed until you are correct.</p>
-              <p id="guessFeedback" class="sub"></p>
-            </div>
-          </aside>
         </div>
       </section>
     </main>

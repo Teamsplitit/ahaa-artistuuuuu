@@ -161,6 +161,7 @@ function createRoom(hostSocket, hostName, inviteCode) {
     roundNumber: 0,
     turnOrder: [],
     turnIndex: -1,
+    pendingClueGivers: new Set(),
     currentClueGiverId: null,
     currentMovie: null,
     roundEndsAt: null,
@@ -314,7 +315,13 @@ function buildMovieHint(room) {
   };
 }
 
-function getNextClueGiverId(room) {
+function getConnectedTurnOrderIds(room) {
+  const ordered = room.turnOrder.filter((id) => room.players.some((p) => p.id === id && p.connected));
+  if (ordered.length) return ordered;
+  return room.players.filter((p) => p.connected).map((p) => p.id);
+}
+
+function getNextClueGiverId(room, allowedIds = null) {
   const ordered = room.turnOrder.filter((id) => room.players.some((p) => p.id === id));
   room.turnOrder = ordered;
   if (!room.turnOrder.length) room.turnOrder = room.players.map((p) => p.id);
@@ -325,7 +332,15 @@ function getNextClueGiverId(room) {
     room.turnIndex = (room.turnIndex + 1) % room.turnOrder.length;
     const candidateId = room.turnOrder[room.turnIndex];
     const candidate = room.players.find((p) => p.id === candidateId);
-    if (candidate && candidate.connected) return candidate.id;
+    if (!candidate || !candidate.connected) {
+      tries -= 1;
+      continue;
+    }
+    if (allowedIds && !allowedIds.has(candidate.id)) {
+      tries -= 1;
+      continue;
+    }
+    return candidate.id;
     tries -= 1;
   }
   return room.turnOrder[room.turnIndex] || null;
@@ -409,7 +424,7 @@ function applyRoundTimeout(roomCode) {
   if (room.roundEndsAt && Date.now() < room.roundEndsAt - 5) return;
 
   const clueGiver = room.players.find((p) => p.id === room.currentClueGiverId);
-  if (clueGiver) clueGiver.score -= 2;
+  if (clueGiver) clueGiver.score = Math.max(0, clueGiver.score - 2);
 
   room.history.push({
     roundNumber: room.roundNumber,
@@ -429,7 +444,19 @@ function startRound(room, roomCode) {
   clearTimer(room);
   clearBreakTimer(room);
   room.phase = PHASES.PLAYING;
-  room.currentClueGiverId = getNextClueGiverId(room);
+  if (!room.pendingClueGivers.size) {
+    room.pendingClueGivers = new Set(getConnectedTurnOrderIds(room));
+  }
+  room.currentClueGiverId = getNextClueGiverId(room, room.pendingClueGivers);
+  if (!room.currentClueGiverId) {
+    room.phase = PHASES.ENDED;
+    room.roundEndsAt = null;
+    room.nextRoundStartsAt = null;
+    room.currentMovie = null;
+    room.gameClosesAt = Date.now() + GAME_CLOSE_DELAY_MS;
+    scheduleRoomClosure(roomCode);
+    return;
+  }
   room.currentMovie = pickMovie(room);
   room.guesses = [];
   room.boardStrokes = [];
@@ -448,7 +475,28 @@ function startRound(room, roomCode) {
 function moveToNextRound(room, roomCode) {
   clearTimer(room);
   clearBreakTimer(room);
-  if (room.roundNumber >= room.settings.rounds) {
+
+  if (room.currentClueGiverId) room.pendingClueGivers.delete(room.currentClueGiverId);
+  const connectedThisRound = new Set(getConnectedTurnOrderIds(room));
+  room.pendingClueGivers = new Set(
+    [...room.pendingClueGivers].filter((id) => connectedThisRound.has(id))
+  );
+
+  if (!room.pendingClueGivers.size) {
+    if (room.roundNumber >= room.settings.rounds) {
+      room.phase = PHASES.ENDED;
+      room.roundEndsAt = null;
+      room.nextRoundStartsAt = null;
+      room.currentMovie = null;
+      room.currentClueGiverId = null;
+      scheduleRoomClosure(roomCode);
+      return;
+    }
+    room.roundNumber += 1;
+    room.pendingClueGivers = new Set(getConnectedTurnOrderIds(room));
+  }
+
+  if (!room.pendingClueGivers.size) {
     room.phase = PHASES.ENDED;
     room.roundEndsAt = null;
     room.nextRoundStartsAt = null;
@@ -458,7 +506,6 @@ function moveToNextRound(room, roomCode) {
     return;
   }
 
-  room.roundNumber += 1;
   room.phase = PHASES.BREAK;
   room.roundEndsAt = null;
   room.currentMovie = null;
@@ -482,6 +529,7 @@ function resolveHost(room) {
 function removePlayer(room, playerId) {
   room.players = room.players.filter((p) => p.id !== playerId);
   room.turnOrder = room.turnOrder.filter((id) => id !== playerId);
+  room.pendingClueGivers.delete(playerId);
   resolveHost(room);
 }
 
@@ -741,6 +789,7 @@ io.on('connection', (socket) => {
     room.roundNumber = 1;
     room.turnOrder = shuffle(room.players.map((p) => p.id));
     room.turnIndex = -1;
+    room.pendingClueGivers = new Set(room.turnOrder);
     startRound(room, room.code);
     emitRoom(room.code);
   });

@@ -27,6 +27,7 @@ const leaveBtn = qs('leaveBtn');
 const roomTitle = qs('roomTitle');
 const phaseText = qs('phaseText');
 const myNameTop = qs('myNameTop');
+const headerMovieText = qs('headerMovieText');
 const inviteCode = qs('inviteCode');
 const inviteLink = qs('inviteLink');
 const copyInviteBtn = qs('copyInviteBtn');
@@ -34,7 +35,6 @@ const inviteCard = qs('inviteCard');
 const hostTransferCard = qs('hostTransferCard');
 const hostTransferSelect = qs('hostTransferSelect');
 const transferHostBtn = qs('transferHostBtn');
-const transferLeaveBtn = qs('transferLeaveBtn');
 
 const lobbySettingsCard = qs('lobbySettingsCard');
 const roundsInput = qs('roundsInput');
@@ -54,21 +54,19 @@ const boardCanvas = qs('boardCanvas');
 const drawControls = qs('drawControls');
 const colorInput = qs('colorInput');
 const sizeInput = qs('sizeInput');
+const sizeValue = qs('sizeValue');
 const clearBoardBtn = qs('clearBoardBtn');
 const boardCtx = boardCanvas.getContext('2d');
 
 const guessBox = qs('guessBox');
 const guessInput = qs('guessInput');
 const sendGuessBtn = qs('sendGuessBtn');
-const guessHelp = qs('guessHelp');
 const guessFeedback = qs('guessFeedback');
 const guessChatCard = qs('guessChatCard');
 
 const guessesList = qs('guessesList');
 const scoreboardCard = qs('scoreboardCard');
 const playersList = qs('playersList');
-const historyCard = qs('historyCard');
-const historyList = qs('historyList');
 const winnerCard = qs('winnerCard');
 const winnerText = qs('winnerText');
 const closeCountdownText = qs('closeCountdownText');
@@ -193,6 +191,10 @@ function setDrawingEnabled(enabled) {
   boardCanvas.style.cursor = enabled ? 'crosshair' : 'not-allowed';
 }
 
+function syncBrushSizeLabel() {
+  sizeValue.textContent = `${sizeInput.value}px`;
+}
+
 function syncBoardFromRoom(room) {
   const incomingStrokes = Array.isArray(room.boardStrokes) ? room.boardStrokes : [];
   const incomingKey = `${room.phase}:${room.roundNumber}:${room.currentClueGiverId || ''}`;
@@ -223,12 +225,10 @@ function renderRoom(room) {
   const isClueGiver = myId && room.currentClueGiverId === myId;
   const leaderboardOnly = isEnded;
 
-  inviteCard.classList.toggle('hidden', leaderboardOnly);
-  hostTransferCard.classList.toggle('hidden', leaderboardOnly);
+  inviteCard.classList.toggle('hidden', room.phase !== 'lobby');
   lobbySettingsCard.classList.toggle('hidden', leaderboardOnly || room.phase !== 'lobby');
   playCard.classList.toggle('hidden', leaderboardOnly || room.phase === 'lobby');
   scoreboardCard.classList.toggle('hidden', leaderboardOnly);
-  historyCard.classList.toggle('hidden', leaderboardOnly);
   guessChatCard.classList.toggle('hidden', leaderboardOnly || room.phase === 'lobby');
 
   roomTitle.textContent = `Room ${room.code}`;
@@ -240,13 +240,15 @@ function renderRoom(room) {
         ? 'Break before next round'
         : 'Game ended';
   myNameTop.textContent = room.myName ? `You: ${room.myName}` : '';
+  headerMovieText.textContent = '';
 
   inviteCode.textContent = room.code;
   const link = `${window.location.origin}?code=${room.code}`;
   inviteLink.textContent = link;
 
   const transferOptions = room.players.filter((p) => p.connected && p.id !== myId);
-  hostTransferCard.classList.toggle('hidden', !isHost || transferOptions.length === 0);
+  const canShowHostTransfer = (isPlaying || isBreak) && isHost && transferOptions.length > 0;
+  hostTransferCard.classList.toggle('hidden', !canShowHostTransfer);
   hostTransferSelect.innerHTML = '';
   for (const p of transferOptions) {
     const opt = document.createElement('option');
@@ -255,7 +257,6 @@ function renderRoom(room) {
     hostTransferSelect.appendChild(opt);
   }
   transferHostBtn.disabled = transferOptions.length === 0;
-  transferLeaveBtn.disabled = transferOptions.length === 0;
 
   if (!state.settingsDraftDirty) {
     roundsInput.value = room.settings.rounds;
@@ -302,30 +303,34 @@ function renderRoom(room) {
   if (room.phase === 'lobby') {
     roleText.textContent = 'Waiting for host to start.';
     movieText.textContent = '';
+    headerMovieText.textContent = '';
   } else if (isEnded) {
     const amWinner = room.winners.includes(myId);
     roleText.textContent = amWinner ? 'You finished as winner.' : 'Game over.';
     movieText.textContent = '';
+    headerMovieText.textContent = '';
   } else if (isBreak) {
     roleText.textContent = 'Round completed. Relax, next round will start automatically.';
     movieText.textContent = '';
+    headerMovieText.textContent = '';
   } else if (isClueGiver) {
     roleText.textContent = 'You are the clue giver. Draw on the board.';
-    movieText.textContent = room.myMovie ? `Movie: ${room.myMovie}` : '';
+    const clueMovieText = room.myMovie ? `Movie: ${room.myMovie}` : '';
+    movieText.textContent = clueMovieText;
+    headerMovieText.textContent = '';
   } else {
     roleText.textContent = 'Watch drawing and guess the Telugu movie.';
     const hintText = room.movieHint?.text || '';
-    const maxReveal = room.movieHint?.maxRevealLetters ?? 0;
-    const revealMeta = room.movieHint
-      ? `(${room.movieHint.revealedLetters}/${maxReveal} letters revealed)`
-      : '';
-    movieText.textContent = hintText ? `Title hint: ${hintText} ${revealMeta}` : '';
+    const totalLetters = room.movieHint?.totalLetters ?? 0;
+    const lengthMeta = room.movieHint ? `(Length: ${totalLetters} letters)` : '';
+    const guessHintText = hintText ? `Title hint: ${hintText} ${lengthMeta}` : '';
+    movieText.textContent = guessHintText;
+    headerMovieText.textContent = '';
   }
   if (isClueGiver || room.phase !== 'playing') guessFeedback.textContent = '';
 
   drawControls.classList.toggle('hidden', !isPlaying || !isClueGiver);
   guessBox.classList.toggle('hidden', !isPlaying || isClueGiver);
-  guessHelp.textContent = 'Unlimited guesses allowed until you are correct.';
   setDrawingEnabled(isPlaying && isClueGiver);
 
   renderList(
@@ -349,17 +354,6 @@ function renderRoom(room) {
       return `<strong>${p.name}</strong>${host}${me} · Score: ${p.score} · ${online}`;
     }),
     'No players'
-  );
-
-  renderList(
-    historyList,
-    (room.history || []).slice().reverse().map((r) => {
-      const clue = room.players.find((p) => p.id === r.clueGiverId)?.name || 'Unknown';
-      const winner = r.winnerId ? room.players.find((p) => p.id === r.winnerId)?.name || 'Unknown' : 'No winner';
-      const status = r.timedOut ? 'Timed out' : `Winner: ${winner}`;
-      return `Round ${r.roundNumber}: ${clue} · ${status}`;
-    }),
-    'No rounds completed yet'
   );
 
   if (isEnded) {
@@ -484,19 +478,6 @@ transferHostBtn.addEventListener('click', () => {
   socket.emit('room:transferHost', { targetPlayerId });
 });
 
-transferLeaveBtn.addEventListener('click', () => {
-  const targetPlayerId = hostTransferSelect.value;
-  if (!targetPlayerId) return;
-  socket.emit('room:transferAndLeave', { targetPlayerId });
-  clearTimer();
-  clearCloseInterval();
-  state.room = null;
-  state.boardKey = null;
-  state.boardStrokes = [];
-  clearBoardCanvas();
-  showHome();
-});
-
 saveSettingsBtn.addEventListener('click', () => {
   state.settingsDraftDirty = false;
   socket.emit('room:updateSettings', {
@@ -527,6 +508,10 @@ clearBoardBtn.addEventListener('click', () => {
   state.boardStrokes = [];
   clearBoardCanvas();
   socket.emit('board:clear');
+});
+
+sizeInput.addEventListener('input', () => {
+  syncBrushSizeLabel();
 });
 
 function submitGuess() {
@@ -609,5 +594,6 @@ socket.on('room:closed', ({ reason }) => {
 });
 
 hydrateFromUrl();
+syncBrushSizeLabel();
 clearBoardCanvas();
 showHome();
