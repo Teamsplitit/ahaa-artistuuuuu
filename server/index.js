@@ -535,6 +535,7 @@ function moveToNextRound(room, roomCode) {
       room.nextRoundStartsAt = null;
       room.currentMovie = null;
       room.currentClueGiverId = null;
+      room.boardStrokes = [];
       scheduleRoomClosure(roomCode);
       return;
     }
@@ -548,6 +549,7 @@ function moveToNextRound(room, roomCode) {
     room.nextRoundStartsAt = null;
     room.currentMovie = null;
     room.currentClueGiverId = null;
+    room.boardStrokes = [];
     scheduleRoomClosure(roomCode);
     return;
   }
@@ -556,6 +558,7 @@ function moveToNextRound(room, roomCode) {
   room.roundEndsAt = null;
   room.currentMovie = null;
   room.currentClueGiverId = null;
+  room.boardStrokes = [];
   room.nextRoundStartsAt = Date.now() + ROUND_BREAK_MS;
   room.breakHandle = setTimeout(() => {
     const latest = rooms.get(roomCode);
