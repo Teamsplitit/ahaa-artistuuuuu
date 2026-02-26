@@ -10,6 +10,7 @@ const state = {
   drawing: false,
   lastPoint: null,
   settingsDraftDirty: false,
+  lastMovieDebugKey: null,
 };
 
 const qs = (id) => document.getElementById(id);
@@ -557,6 +558,15 @@ socket.on('room:joined', ({ roomCode, playerId }) => {
 
 socket.on('room:update', (room) => {
   renderRoom(room);
+  if (room.phase === 'playing' && room.movieSource) {
+    const debugKey = `${room.roundNumber}:${room.currentClueGiverId || ''}:${room.movieSource}`;
+    if (state.lastMovieDebugKey !== debugKey) {
+      state.lastMovieDebugKey = debugKey;
+      console.log(`[movie] source=${room.movieSource} round=${room.roundNumber} room=${room.code}`);
+    }
+  } else if (room.phase !== 'playing') {
+    state.lastMovieDebugKey = null;
+  }
 });
 
 socket.on('board:stroke', (stroke) => {

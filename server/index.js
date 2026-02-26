@@ -173,6 +173,8 @@ function createRoom(hostSocket, hostName, inviteCode) {
     correctGuesserPoints: new Map(),
     firstCorrectGuesserId: null,
     usedMovies: new Set(),
+    lastMovieSource: null,
+    lastMovieTitle: null,
     history: [],
     timerHandle: null,
     breakHandle: null,
@@ -390,17 +392,22 @@ async function pickMovie(room) {
         : await response.text();
       const movieFromApi = extractMovieTitle(payload);
       if (movieFromApi) {
+        room.lastMovieSource = 'api';
+        room.lastMovieTitle = movieFromApi;
         console.log(`[movie] source=api room=${room.code} title="${movieFromApi}"`);
         return movieFromApi;
       }
     }
-  } catch (_err) {
-    // Fallback handled below.
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[movie] source=api error room=${room.code} message="${message}"`);
   } finally {
     clearTimeout(timeoutHandle);
   }
 
   const fallbackMovie = pickMovieFromLocalList(room);
+  room.lastMovieSource = 'fallback';
+  room.lastMovieTitle = fallbackMovie;
   console.warn(`[movie] source=fallback room=${room.code} title="${fallbackMovie}"`);
   return fallbackMovie;
 }
@@ -541,6 +548,8 @@ function moveToNextRound(room, roomCode) {
       room.currentMovie = null;
       room.currentClueGiverId = null;
       room.boardStrokes = [];
+      room.lastMovieSource = null;
+      room.lastMovieTitle = null;
       scheduleRoomClosure(roomCode);
       return;
     }
@@ -555,6 +564,8 @@ function moveToNextRound(room, roomCode) {
     room.currentMovie = null;
     room.currentClueGiverId = null;
     room.boardStrokes = [];
+    room.lastMovieSource = null;
+    room.lastMovieTitle = null;
     scheduleRoomClosure(roomCode);
     return;
   }
@@ -564,6 +575,8 @@ function moveToNextRound(room, roomCode) {
   room.currentMovie = null;
   room.currentClueGiverId = null;
   room.boardStrokes = [];
+  room.lastMovieSource = null;
+  room.lastMovieTitle = null;
   room.nextRoundStartsAt = Date.now() + ROUND_BREAK_MS;
   room.breakHandle = setTimeout(() => {
     const latest = rooms.get(roomCode);
@@ -652,6 +665,7 @@ function buildPublicRoom(room, viewerId) {
     myPlayerId: viewer?.id || null,
     myName: viewer?.name || null,
     myMovie: isClueGiver ? room.currentMovie : null,
+    movieSource: room.phase === PHASES.PLAYING ? room.lastMovieSource : null,
     movieHint,
     maxPlayers: MAX_PLAYERS,
     minPlayers: MIN_PLAYERS,
