@@ -26,7 +26,7 @@ const DISCONNECT_GRACE_MS = 90_000;
 const GAME_CLOSE_DELAY_MS = 10_000;
 const ROUND_BREAK_MS = 10 * 1000;
 const RANDOM_MOVIE_API_URL = 'https://random-movie-api-872s.onrender.com/random-telugu-movie';
-const RANDOM_MOVIE_API_TIMEOUT_MS = 3000;
+const RANDOM_MOVIE_API_TIMEOUT_MS = 8000;
 const GUESSER_BASE_POINTS = 30;
 const GUESSER_TIME_BONUS_MAX = 50;
 const GUESSER_ORDER_BONUS_MAX = 35;
@@ -389,7 +389,10 @@ async function pickMovie(room) {
         ? await response.json()
         : await response.text();
       const movieFromApi = extractMovieTitle(payload);
-      if (movieFromApi) return movieFromApi;
+      if (movieFromApi) {
+        console.log(`[movie] source=api room=${room.code} title="${movieFromApi}"`);
+        return movieFromApi;
+      }
     }
   } catch (_err) {
     // Fallback handled below.
@@ -397,7 +400,9 @@ async function pickMovie(room) {
     clearTimeout(timeoutHandle);
   }
 
-  return pickMovieFromLocalList(room);
+  const fallbackMovie = pickMovieFromLocalList(room);
+  console.warn(`[movie] source=fallback room=${room.code} title="${fallbackMovie}"`);
+  return fallbackMovie;
 }
 
 function clearTimer(room) {
