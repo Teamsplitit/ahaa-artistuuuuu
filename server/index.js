@@ -25,6 +25,8 @@ const MAX_HINT_REVEAL_WORDS = 3;
 const DISCONNECT_GRACE_MS = 90_000;
 const GAME_CLOSE_DELAY_MS = 10_000;
 const ROUND_BREAK_MS = 10 * 1000;
+const RANDOM_MOVIE_API_URL = 'https://random-movie-api-872s.onrender.com/random-telugu-movie';
+const RANDOM_MOVIE_API_TIMEOUT_MS = 3000;
 const GUESSER_BASE_POINTS = 30;
 const GUESSER_TIME_BONUS_MAX = 50;
 const GUESSER_ORDER_BONUS_MAX = 35;
@@ -346,12 +348,56 @@ function getNextClueGiverId(room, allowedIds = null) {
   return room.turnOrder[room.turnIndex] || null;
 }
 
-function pickMovie(room) {
+function pickMovieFromLocalList(room) {
   if (room.usedMovies.size >= TELUGU_MOVIES.length) room.usedMovies.clear();
   const available = TELUGU_MOVIES.filter((m) => !room.usedMovies.has(m));
   const movie = available[Math.floor(Math.random() * available.length)];
   room.usedMovies.add(movie);
   return movie;
+}
+
+function sanitizeMovieTitle(value) {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, 80);
+  return cleaned || null;
+}
+
+function extractMovieTitle(payload) {
+  if (typeof payload === 'string') return sanitizeMovieTitle(payload);
+  if (!payload || typeof payload !== 'object') return null;
+  return (
+    sanitizeMovieTitle(payload.movie) ||
+    sanitizeMovieTitle(payload.title) ||
+    sanitizeMovieTitle(payload.name) ||
+    null
+  );
+}
+
+async function pickMovie(room) {
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), RANDOM_MOVIE_API_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(RANDOM_MOVIE_API_URL, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: { Accept: 'application/json, text/plain;q=0.9, */*;q=0.8' },
+    });
+    if (response.ok) {
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+      const movieFromApi = extractMovieTitle(payload);
+      if (movieFromApi) return movieFromApi;
+    }
+  } catch (_err) {
+    // Fallback handled below.
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+
+  return pickMovieFromLocalList(room);
 }
 
 function clearTimer(room) {
@@ -440,7 +486,7 @@ function applyRoundTimeout(roomCode) {
   moveToNextRound(room, roomCode);
 }
 
-function startRound(room, roomCode) {
+async function startRound(room, roomCode) {
   clearTimer(room);
   clearBreakTimer(room);
   room.phase = PHASES.PLAYING;
@@ -457,7 +503,7 @@ function startRound(room, roomCode) {
     scheduleRoomClosure(roomCode);
     return;
   }
-  room.currentMovie = pickMovie(room);
+  room.currentMovie = await pickMovie(room);
   room.guesses = [];
   room.boardStrokes = [];
   room.correctGuessers = new Set();
@@ -514,8 +560,9 @@ function moveToNextRound(room, roomCode) {
   room.breakHandle = setTimeout(() => {
     const latest = rooms.get(roomCode);
     if (!latest || latest.phase !== PHASES.BREAK) return;
-    startRound(latest, roomCode);
-    emitRoom(roomCode);
+    startRound(latest, roomCode)
+      .then(() => emitRoom(roomCode))
+      .catch(() => emitRoom(roomCode));
   }, ROUND_BREAK_MS);
 }
 
@@ -777,7 +824,7 @@ io.on('connection', (socket) => {
     handlePlayerLeave(room, playerId, 'Previous host transferred and left');
   });
 
-  socket.on('room:start', () => {
+  socket.on('room:start', async () => {
     const roomCode = socket.data.roomCode;
     const room = roomCode ? rooms.get(roomCode) : null;
     if (!room || room.hostId !== socket.data.playerId || room.phase !== PHASES.LOBBY) return;
@@ -790,7 +837,7 @@ io.on('connection', (socket) => {
     room.turnOrder = shuffle(room.players.map((p) => p.id));
     room.turnIndex = -1;
     room.pendingClueGivers = new Set(room.turnOrder);
-    startRound(room, room.code);
+    await startRound(room, room.code);
     emitRoom(room.code);
   });
 
